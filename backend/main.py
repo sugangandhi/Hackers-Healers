@@ -34,9 +34,14 @@ app = FastAPI(title="Medical Office Assistant API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://medofficeai-6h84i92iy-benfarsis-projects.vercel.app",  # Your Vercel domain
+        "http://localhost:5500",  # For local development
+        "http://127.0.0.1:5500",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
 FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
