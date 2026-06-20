@@ -255,6 +255,42 @@ const changesList     = document.getElementById('changesList');
 const followupList    = document.getElementById('followupList');
 const missingInfoList = document.getElementById('missingInfoList');
 
+// ── Inbound PDF upload ────────────────────────────────────────────────────────
+let inboundFile = null;
+const inboundDropzone   = document.getElementById('inboundDropzone');
+const inboundFileInput  = document.getElementById('inboundFileInput');
+const inboundFilePreview = document.getElementById('inboundFilePreview');
+const inboundFileNameEl  = document.getElementById('inboundFileName');
+const inboundClearBtn    = document.getElementById('inboundClearFileBtn');
+
+if (inboundDropzone) {
+  inboundDropzone.addEventListener('dragover', e => { e.preventDefault(); inboundDropzone.classList.add('drag-over'); });
+  inboundDropzone.addEventListener('dragleave', () => inboundDropzone.classList.remove('drag-over'));
+  inboundDropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    inboundDropzone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) setInboundFile(e.dataTransfer.files[0]);
+  });
+}
+if (inboundFileInput) {
+  inboundFileInput.addEventListener('change', e => { if (e.target.files[0]) setInboundFile(e.target.files[0]); });
+}
+if (inboundClearBtn) {
+  inboundClearBtn.addEventListener('click', () => {
+    inboundFile = null;
+    if (inboundFileInput) inboundFileInput.value = '';
+    document.getElementById('inboundDropzoneInner')?.classList.remove('hidden');
+    inboundFilePreview?.classList.add('hidden');
+  });
+}
+
+function setInboundFile(file) {
+  inboundFile = file;
+  if (inboundFileNameEl) inboundFileNameEl.textContent = file.name;
+  document.getElementById('inboundDropzoneInner')?.classList.add('hidden');
+  inboundFilePreview?.classList.remove('hidden');
+}
+
 analyzeBtn.addEventListener('click', runInbound);
 clearBtn.addEventListener('click', clearInbound);
 document.addEventListener('keydown', e => {
@@ -265,16 +301,39 @@ document.addEventListener('keydown', e => {
 });
 
 async function runInbound() {
-  const text = document.getElementById('documentInput')?.value?.trim();
-  if (!text) return;
-
   const statusEl = document.getElementById('inboundStatus');
-  if (statusEl) statusEl.textContent = 'Analysing…';
   analyzeBtn.disabled = true;
   inboundSummary.textContent = 'Analysing with AI…';
   [changesList, followupList, missingInfoList].forEach(el => { if (el) el.innerHTML = ''; });
 
   try {
+    let text = document.getElementById('documentInput')?.value?.trim() || '';
+
+    // If a PDF/image file is selected, OCR it first
+    if (inboundFile) {
+      if (statusEl) statusEl.textContent = 'Extracting text…';
+      inboundSummary.textContent = 'Reading document…';
+      const form = new FormData();
+      form.append('file', inboundFile);
+      const ocrRes = await fetch(`${API_BASE}/ocr-extract`, { method: 'POST', body: form });
+      if (!ocrRes.ok) throw new Error((await ocrRes.json()).detail || 'OCR failed');
+      const ocrData = await ocrRes.json();
+      text = ocrData.ocr_text || '';
+      // Populate textarea so user can see/edit extracted text
+      const inp = document.getElementById('documentInput');
+      if (inp) inp.value = text;
+    }
+
+    if (!text) {
+      if (statusEl) statusEl.textContent = 'Ready';
+      analyzeBtn.disabled = false;
+      inboundSummary.textContent = 'Upload a PDF or paste text to begin.';
+      return;
+    }
+
+    if (statusEl) statusEl.textContent = 'Analysing…';
+    inboundSummary.textContent = 'Analysing with AI…';
+
     const res = await fetch(`${API_BASE}/summarize-inbound`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -297,6 +356,10 @@ async function runInbound() {
 }
 
 function clearInbound() {
+  inboundFile = null;
+  if (inboundFileInput) inboundFileInput.value = '';
+  document.getElementById('inboundDropzoneInner')?.classList.remove('hidden');
+  inboundFilePreview?.classList.add('hidden');
   const inp = document.getElementById('documentInput');
   if (inp) inp.value = '';
   inboundSummary.textContent = 'Run analysis to see the AI-generated summary.';

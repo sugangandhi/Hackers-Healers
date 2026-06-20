@@ -4,21 +4,6 @@
 let selectedFile  = null;
 let currentResult = null;
 
-// ── Main tab switching ────────────────────────────────────────────────────────
-document.querySelectorAll('[data-main-tab]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('[data-main-tab]').forEach(b => {
-      b.classList.toggle('active', b === btn);
-      b.setAttribute('aria-selected', String(b === btn));
-    });
-    const tab = btn.dataset.mainTab;
-    document.getElementById('formFillerSection').classList.toggle('hidden', tab !== 'formfiller');
-    document.getElementById('referralSection').classList.toggle('hidden', tab === 'formfiller');
-    if (tab === 'inbound'  && typeof setActiveTab === 'function') setActiveTab('inbound');
-    if (tab === 'referral' && typeof setActiveTab === 'function') setActiveTab('outbound');
-  });
-});
-
 // ── Patient list ──────────────────────────────────────────────────────────────
 async function loadPatients() {
   try {
