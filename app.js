@@ -1,4 +1,4 @@
-const tabs = document.querySelectorAll('.tab');
+const tabs = document.querySelectorAll('#referralSection .tab');
 const inboundPanel = document.getElementById('inboundPanel');
 const inputTitle = document.getElementById('inputTitle');
 const inputDescription = document.getElementById('inputDescription');
@@ -67,8 +67,7 @@ function analyzeReferral(text) {
     `Completeness score: ${score}%.`,
     missing.length ? `Missing items: ${missing.join(', ')}.` : 'No major missing items detected.',
     'Doctor review recommended before sending.'
-  ].join('
-');
+  ].join('\n');
   return { score, missing, suggestions, summary, found };
 }
 
@@ -87,8 +86,7 @@ function analyzeInbound(text) {
     changes.length ? `Key changes: ${changes.join(' ')}` : 'No major medication or management changes detected.',
     followups.length ? `Follow-up items: ${followups.join(' ')}` : 'No specific follow-up actions detected.',
     'Primary care review recommended to update the chart and next steps.'
-  ].join('
-');
+  ].join('\n');
   return { changes, followups, summary };
 }
 
