@@ -1,18 +1,17 @@
 """
 SQLite persistence layer for MedOffice AI.
-All data (appointments, activity log, form submissions) lives here.
+All data (appointments, activity log, form submissions, users) lives here.
 init_db() is called once at startup; everything else is called per-request.
 """
+import hashlib
+import os
 import sqlite3
 from contextlib import contextmanager
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 DB_PATH = Path(__file__).parent / "medoffice.db"
-
-# ─── Credentials (demo only) ─────────────────────────────────────────────────
-DEMO_USERS: Dict[str, str] = {"dr.patel": "medoffice2026"}
 
 # ─── Seed: today's appointments ───────────────────────────────────────────────
 _TODAY_APPTS = [
@@ -29,18 +28,6 @@ _TODAY_APPTS = [
     ("pt-010", "Michael Santos",  "MS", "16:15", 20, "OAT monthly check-in",                "upcoming",    "teal",   "OAT"),
 ]
 
-# Seed: activity log (seconds_ago → how old each entry is)
-_SEED_ACTIVITY = [
-    ("form_filled",        "WSIB Form 8 filled",           "Marcus Webb",    "pt-002", "Form Filler AI",      "teal",   120),
-    ("referral_checked",   "Referral to Cardiology",       "David Murphy",   "pt-006", "Reviewed OK",         "purple", 1080),
-    ("form_filled",        "Disability form completed",    "Marie Tremblay", "pt-003", "Manulife claim",      "orange", 3600),
-    ("form_filled",        "Prenatal form auto-filled",    "Fatima Hassan",  "pt-005", "26 weeks GDM",        "pink",   7200),
-    ("form_filled",        "School anaphylaxis plan",      "James Okafor",   "pt-008", "Nurse copy sent",     "green",  10800),
-    ("referral_flagged",   "Referral to Rheumatology",     "Elena Petrov",   "pt-007", "Flagged: missing MRI","slate",  14400),
-    ("referral_flagged",   "Referral to Cardiology",       "David Murphy",   "pt-006", "Flagged: no echo",    "slate",  21600),
-    ("referral_flagged",   "Referral to Neurology",        "Robert Chen",    "pt-004", "Flagged: no CT",      "slate",  28800),
-    ("appointment_booked", "Appointment booked",           "Sarah Khan",     "pt-001", "Diabetes follow-up",  "teal",   86400),
-]
 
 # Seed: historical week data (patients per day and forms per day Mon–Thu)
 _HIST_APPT_COUNTS  = {0: 11, 1: 14, 2: 10, 3: 16}  # weekday: count
@@ -73,6 +60,17 @@ def _conn():
 # ─── Schema ───────────────────────────────────────────────────────────────────
 
 _SCHEMA = """
+CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    email         TEXT    NOT NULL UNIQUE,
+    password_hash TEXT    NOT NULL,
+    name          TEXT    NOT NULL,
+    initials      TEXT    DEFAULT '',
+    role          TEXT    DEFAULT 'Family Physician',
+    clinic        TEXT    DEFAULT '',
+    created_at    TEXT    DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS appointments (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     patient_id       TEXT    NOT NULL,
@@ -141,17 +139,6 @@ def init_db() -> None:
         # Seed Mon–Thu of current week
         _seed_week(c, today_str)
 
-        # Seed activity log (once)
-        if c.execute("SELECT COUNT(*) FROM activity_log").fetchone()[0] == 0:
-            now = datetime.now()
-            for action, desc, pname, pid, detail, color, secs in _SEED_ACTIVITY:
-                ts = (now - timedelta(seconds=secs)).strftime("%Y-%m-%d %H:%M:%S")
-                c.execute(
-                    """INSERT INTO activity_log
-                       (action,description,patient_name,patient_id,detail,color,created_at)
-                       VALUES (?,?,?,?,?,?,?)""",
-                    (action, desc, pname, pid, detail, color, ts),
-                )
 
 
 def _seed_week(c: sqlite3.Connection, today_str: str) -> None:
@@ -198,8 +185,46 @@ def _seed_week(c: sqlite3.Connection, today_str: str) -> None:
 
 # ─── Auth ─────────────────────────────────────────────────────────────────────
 
+def _hash_password(password: str) -> str:
+    salt = os.urandom(16)
+    dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100_000)
+    return salt.hex() + ':' + dk.hex()
+
+def _verify_password(password: str, stored: str) -> bool:
+    try:
+        salt_hex, dk_hex = stored.split(':')
+        salt = bytes.fromhex(salt_hex)
+        dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100_000)
+        return dk.hex() == dk_hex
+    except Exception:
+        return False
+
+def register_user(email: str, password: str, name: str,
+                  role: str = "Family Physician",
+                  clinic: str = "Ottawa Family Health Team") -> Optional[Dict]:
+    with _conn() as c:
+        if c.execute("SELECT id FROM users WHERE email=?", (email.lower(),)).fetchone():
+            return None  # email already taken
+        pw_hash = _hash_password(password)
+        parts    = name.strip().split()
+        initials = ''.join(w[0].upper() for w in parts[:2])
+        cur = c.execute(
+            "INSERT INTO users (email,password_hash,name,initials,role,clinic) VALUES (?,?,?,?,?,?)",
+            (email.lower(), pw_hash, name.strip(), initials, role, clinic),
+        )
+        return {"id": cur.lastrowid, "email": email.lower(),
+                "name": name.strip(), "initials": initials, "role": role, "clinic": clinic}
+
+def validate_user(email: str, password: str) -> Optional[Dict]:
+    with _conn() as c:
+        row = c.execute("SELECT * FROM users WHERE email=?", (email.lower(),)).fetchone()
+    if not row or not _verify_password(password, row["password_hash"]):
+        return None
+    return {"id": row["id"], "email": row["email"], "name": row["name"],
+            "initials": row["initials"], "role": row["role"], "clinic": row["clinic"]}
+
 def validate_credentials(username: str, password: str) -> bool:
-    return DEMO_USERS.get(username) == password
+    return validate_user(username, password) is not None
 
 
 # ─── Appointments ─────────────────────────────────────────────────────────────
@@ -295,7 +320,7 @@ def get_dashboard_stats() -> Dict[str, Any]:
         pending_referrals = c.execute(
             """SELECT COUNT(*) FROM activity_log
                WHERE action='referral_flagged' AND date(created_at)=?""", (today,)
-        ).fetchone()[0] or 3   # default 3 for demo if none logged yet
+        ).fetchone()[0]
 
         completed = c.execute(
             "SELECT COUNT(*) FROM appointments WHERE appointment_date=? AND status='completed'",

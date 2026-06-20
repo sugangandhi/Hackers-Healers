@@ -24,7 +24,8 @@ from ocr.pdf_renderer import render_pdf_pages, overlay_fields, overlay_fields_on
 from fhir.patient_loader import list_patients, get_patient, build_patient_context
 from agent.combined_filler import analyze_and_fill
 from db.database import (
-    init_db, validate_credentials, get_appointments, update_appointment_status,
+    init_db, validate_credentials, validate_user, register_user,
+    get_appointments, update_appointment_status,
     create_appointment, log_activity, get_activity, log_form_submission,
     get_dashboard_stats, get_chart_data,
 )
@@ -60,25 +61,37 @@ async def health():
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 class LoginRequest(BaseModel):
-    username: str
+    email: str
     password: str
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+    name: str
+    role: str = "Family Physician"
+    clinic: str = "Ottawa Family Health Team"
 
 @app.post("/api/auth/login")
 async def auth_login(body: LoginRequest):
-    if not validate_credentials(body.username, body.password):
-        raise HTTPException(401, "Invalid credentials")
+    user = validate_user(body.email, body.password)
+    if not user:
+        raise HTTPException(401, "Invalid email or password")
     token = secrets.token_urlsafe(32)
-    _sessions[token] = body.username
-    return {
-        "token": token,
-        "user": {
-            "name": "Dr. Anika Patel",
-            "initials": "AP",
-            "role": "Family Physician",
-            "clinic": "Ottawa Family Health Team",
-            "cpso": "92841",
-        },
-    }
+    _sessions[token] = body.email
+    return {"token": token, "user": user}
+
+@app.post("/api/auth/register")
+async def auth_register(body: RegisterRequest):
+    if not body.email or not body.password or not body.name:
+        raise HTTPException(400, "Name, email, and password are required")
+    if len(body.password) < 8:
+        raise HTTPException(400, "Password must be at least 8 characters")
+    user = register_user(body.email, body.password, body.name, body.role, body.clinic)
+    if user is None:
+        raise HTTPException(409, "An account with this email already exists")
+    token = secrets.token_urlsafe(32)
+    _sessions[token] = body.email
+    return {"token": token, "user": user}
 
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -353,6 +366,39 @@ def _render_original(file_bytes: bytes, filename: str, doc) -> list[str]:
         return render_pdf_pages(file_bytes)
     except Exception:
         return [p.image_b64 for p in doc.pages] if doc else []
+
+
+# ── Risk-sorted appointments ─────────────────────────────────────────────────
+
+@app.get("/api/appointments/risk-sorted")
+async def appointments_risk_sorted(date: Optional[str] = None):
+    """
+    Returns today's appointments enriched with clinical risk scores and sorted:
+    HIGH risk (most critical flags first) → MEDIUM → LOW.
+    """
+    from fhir.patient_loader import get_patient
+    from agent.risk_scorer import appointment_context
+
+    appts = get_appointments(date)
+    enriched = []
+    for appt in appts:
+        pid     = appt.get("patient_id", "")
+        patient = get_patient(pid) if pid else None
+        if patient:
+            ctx = appointment_context(patient)
+            appt["risk_level"]     = ctx["top_risk_level"]
+            appt["high_count"]     = ctx["high_count"]
+            appt["med_count"]      = ctx["medium_count"]
+            appt["top_concern"]    = ctx["scores"][0]["rationale"]   if ctx["scores"] else ""
+            appt["top_score_name"] = ctx["scores"][0]["name"]        if ctx["scores"] else ""
+        else:
+            appt.update({"risk_level": "LOW", "high_count": 0, "med_count": 0,
+                         "top_concern": "", "top_score_name": ""})
+        enriched.append(appt)
+
+    level_order = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
+    enriched.sort(key=lambda a: (level_order.get(a["risk_level"], 2), -a.get("high_count", 0)))
+    return {"appointments": enriched}
 
 
 # ── Inbound summary ───────────────────────────────────────────────────────────

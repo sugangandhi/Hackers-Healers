@@ -202,7 +202,7 @@
       <nav class="hidden md:flex items-center gap-1">
         <a href="dashboard.html" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-white/10">Dashboard</a>
         <a href="index.html" class="px-4 py-2 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors">Form Filler</a>
-        <a href="index.html?tab=referral" class="px-4 py-2 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors">Referrals</a>
+        <a href="referral.html" class="px-4 py-2 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors">Referrals</a>
         <a href="scheduler.html" class="px-4 py-2 rounded-lg text-sm font-medium text-white/60 hover:text-white hover:bg-white/10 transition-colors">Scheduler</a>
       </nav>
 
@@ -244,14 +244,14 @@
     </div>
 
     <!-- ── STAT CARDS ───────────────────────────────────────────── -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
 
       <div class="stat-card c1 appear delay-1">
         <div class="flex items-start justify-between mb-4">
           <div class="w-11 h-11 rounded-xl flex items-center justify-center" style="background:#f0fdfa">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
-          <span class="text-xs font-semibold text-teal-500 bg-teal-50 px-2 py-0.5 rounded-full">↑ 8%</span>
+          <span class="text-xs font-semibold text-teal-500 bg-teal-50 px-2 py-0.5 rounded-full" id="pillPatientsTrend"></span>
         </div>
         <div class="text-3xl font-black text-slate-900 mb-1" id="statPatients">—</div>
         <div class="text-sm font-medium text-slate-500">Patients Today</div>
@@ -279,16 +279,6 @@
         <div class="text-sm font-medium text-slate-500">Referrals to Review</div>
       </div>
 
-      <div class="stat-card c4 appear delay-4">
-        <div class="flex items-start justify-between mb-4">
-          <div class="w-11 h-11 rounded-xl flex items-center justify-center" style="background:#f0fdf4">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          </div>
-          <span class="text-xs font-semibold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full">↑ 23 min</span>
-        </div>
-        <div class="text-3xl font-black text-slate-900 mb-1"><span id="statTime">—</span><span class="text-lg text-slate-400 font-medium">min</span></div>
-        <div class="text-sm font-medium text-slate-500">Time Saved Today</div>
-      </div>
 
     </div>
 
@@ -318,7 +308,6 @@
           <p class="text-white/70 text-sm mb-5 leading-relaxed">Upload any medical form — WSIB, insurance, school notes. Claude fills it from the patient chart in seconds.</p>
           <div class="flex flex-wrap gap-2 mb-6">
             <span class="module-stat-pill" id="pillForms">Loading…</span>
-            <span class="module-stat-pill">98% accuracy</span>
           </div>
           <div class="launch-btn">
             Open Tool
@@ -328,7 +317,7 @@
       </a>
 
       <!-- Referral Checker -->
-      <a href="index.html?tab=referral" class="module-card mc-ref appear delay-4" data-3d>
+      <a href="referral.html" class="module-card mc-ref appear delay-4" data-3d>
         <div class="card-bg"></div>
         <div class="card-sheen"></div>
         <div class="card-inner">
@@ -342,8 +331,7 @@
           <h3 class="text-white text-2xl font-black mb-2 leading-tight">Referral<br>Checker</h3>
           <p class="text-white/70 text-sm mb-5 leading-relaxed">Validate referral packages against specialist requirements before sending. Catch missing labs or imaging.</p>
           <div class="flex flex-wrap gap-2 mb-6">
-            <span class="module-stat-pill">4 reviewed</span>
-            <span class="module-stat-pill">3 pending</span>
+            <span class="module-stat-pill" id="pillRefReviewed">Loading…</span>
           </div>
           <div class="launch-btn">
             Open Tool
@@ -440,7 +428,8 @@
       const emoji = hour < 12 ? '☀️' : hour < 17 ? '👋' : '🌙';
       const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
       const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-      document.getElementById('greeting').textContent = `${greet}, Dr. Patel ${emoji}`;
+      const firstName = (user?.name || 'Doctor').split(' ').slice(-1)[0];
+      document.getElementById('greeting').textContent = `${greet}, ${firstName} ${emoji}`;
       document.getElementById('dateLabel').textContent =
         `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
     })();
@@ -480,10 +469,9 @@
         const r = await fetch(`${API}/dashboard/stats`);
         const s = await r.json();
 
-        animateCount(document.getElementById('statPatients'), s.patients_today);
+        animateCount(document.getElementById('statPatients'), s.total_today);
         animateCount(document.getElementById('statForms'), s.forms_today);
         animateCount(document.getElementById('statReferrals'), s.pending_referrals);
-        animateCount(document.getElementById('statTime'), s.time_saved_min);
 
         // Sub-greeting
         const waiting = s.in_progress + s.upcoming;
@@ -495,11 +483,20 @@
         const fp = document.getElementById('pillForms');
         if (fp) fp.textContent = `${s.forms_today} form${s.forms_today !== 1 ? 's' : ''} today`;
 
+        const rp = document.getElementById('pillRefReviewed');
+        if (rp) rp.textContent = s.pending_referrals > 0
+          ? `${s.pending_referrals} pending`
+          : 'No pending referrals';
+
         const ap = document.getElementById('pillAppts');
         if (ap) ap.textContent = `${s.total_today} appts today`;
 
         const up = document.getElementById('pillUpcoming');
         if (up) up.textContent = `${s.upcoming} upcoming`;
+
+        // Hide trend badge — no comparative data to show
+        const pt = document.getElementById('pillPatientsTrend');
+        if (pt) pt.style.display = 'none';
 
       } catch (e) {
         document.getElementById('subGreeting').textContent = 'Could not load stats — is the server running?';
@@ -547,10 +544,7 @@
         formsData    = d.forms;
         patientsData = d.patients;
       } catch {
-        // fallback — static
-        labels       = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-        formsData    = [5, 9, 6, 11, 7];
-        patientsData = [11, 14, 10, 16, 12];
+        // show empty chart when server is unreachable
       }
 
       const gradForms = ctx.createLinearGradient(0, 0, 0, 220);
