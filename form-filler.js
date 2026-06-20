@@ -1,5 +1,11 @@
 // API_BASE is defined in index.html before this script loads
 
+function esc(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // ── State ────────────────────────────────────────────────────────────────────
 let selectedFile  = null;
 let currentResult = null;
