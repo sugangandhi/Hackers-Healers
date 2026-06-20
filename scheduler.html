@@ -87,25 +87,6 @@
     .day-num  { font-size:18px; font-weight:800; color:#1e293b; }
     .day-name { font-size:11px; font-weight:600; color:#94a3b8; margin-top:2px; }
 
-    /* New Appointment modal */
-    .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100;
-      display: none; align-items: center; justify-content: center;
-      backdrop-filter: blur(4px);
-    }
-    .modal-overlay.open { display: flex; }
-    .modal-box {
-      background: white; border-radius: 20px; padding: 28px; width: 95%; max-width: 480px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.2);
-      animation: modalIn .2s ease;
-    }
-    @keyframes modalIn { from { transform: scale(.95); opacity:0; } to { transform:scale(1); opacity:1; } }
-    .modal-input {
-      width:100%; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:10px;
-      font-size:13px; outline:none; transition:border .2s;
-    }
-    .modal-input:focus { border-color:#0d9488; box-shadow:0 0 0 3px rgba(13,148,136,.1); }
-    .modal-label { display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:5px; }
   </style>
 </head>
 <body>
@@ -131,12 +112,6 @@
         </div>
       </div>
       <div class="flex items-center gap-3">
-        <button onclick="openNewAppt()"
-          class="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2"
-          style="background:linear-gradient(135deg,#0d9488,#059669);box-shadow:0 2px 12px rgba(13,148,136,.4)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          New Appointment
-        </button>
         <div class="relative">
           <div class="avatar" id="av" style="background:linear-gradient(135deg,#0d9488,#06b6d4)">AP</div>
           <div class="status-dot"></div>
@@ -225,18 +200,7 @@
             <span class="ml-auto text-xs bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full font-semibold">Live</span>
           </div>
           <div id="aiSuggestions" class="divide-y divide-slate-50">
-            <div class="px-5 py-3.5">
-              <p class="text-xs font-bold text-amber-600 mb-0.5">⚠ WSIB Form needed</p>
-              <p class="text-xs text-slate-600">Marcus Webb's Form 8 due — ready to auto-fill from chart</p>
-            </div>
-            <div class="px-5 py-3.5">
-              <p class="text-xs font-bold text-violet-600 mb-0.5">📋 PHQ-9 reminder</p>
-              <p class="text-xs text-slate-600">Marie Tremblay scored 14 last visit — consider GAD-7 today</p>
-            </div>
-            <div class="px-5 py-3.5">
-              <p class="text-xs font-bold text-blue-600 mb-0.5">🔬 Lab review pending</p>
-              <p class="text-xs text-slate-600">Elena Petrov's CRP results — flag for rheumatology</p>
-            </div>
+            <div class="px-5 py-6 text-center text-slate-400 text-xs font-medium">Loading suggestions…</div>
           </div>
         </div>
 
@@ -251,7 +215,7 @@
               <span class="text-sm font-semibold text-slate-700">Fill a Form with AI</span>
               <svg class="ml-auto" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
             </a>
-            <a href="index.html?tab=referral" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+            <a href="referral.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
               <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#faf5ff">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
               </div>
@@ -271,78 +235,6 @@
       </div>
     </div>
   </main>
-
-  <!-- New Appointment Modal -->
-  <div class="modal-overlay" id="apptModal">
-    <div class="modal-box">
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-bold text-slate-900">New Appointment</h3>
-        <button onclick="closeModal()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <div class="space-y-4">
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="modal-label">Patient Name</label>
-            <input id="newName" type="text" class="modal-input" placeholder="e.g. Sarah Khan">
-          </div>
-          <div>
-            <label class="modal-label">Patient ID</label>
-            <input id="newPid" type="text" class="modal-input" placeholder="e.g. pt-001">
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="modal-label">Appointment Time</label>
-            <input id="newTime" type="time" class="modal-input" value="09:00">
-          </div>
-          <div>
-            <label class="modal-label">Duration (min)</label>
-            <input id="newDuration" type="number" class="modal-input" value="20" min="5" step="5">
-          </div>
-        </div>
-        <div>
-          <label class="modal-label">Appointment Type</label>
-          <input id="newType" type="text" class="modal-input" placeholder="e.g. Diabetes follow-up">
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="modal-label">Date</label>
-            <input id="newDate" type="date" class="modal-input">
-          </div>
-          <div>
-            <label class="modal-label">Color Tag</label>
-            <select id="newColor" class="modal-input">
-              <option value="blue">Blue (General)</option>
-              <option value="orange">Orange (WSIB)</option>
-              <option value="pink">Pink (Prenatal)</option>
-              <option value="red">Red (Urgent)</option>
-              <option value="purple">Purple (Mental Health)</option>
-              <option value="green">Green (Preventive)</option>
-              <option value="teal">Teal (Chronic)</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label class="modal-label">Badge Label</label>
-          <input id="newBadge" type="text" class="modal-input" placeholder="e.g. Diabetes, WSIB, Prenatal">
-        </div>
-        <div id="modalError" class="hidden text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2"></div>
-      </div>
-      <div class="flex gap-3 mt-6">
-        <button onclick="submitNewAppt()"
-          class="flex-1 py-3 rounded-xl text-sm font-bold text-white"
-          style="background:linear-gradient(135deg,#0e5570,#0d9488)">
-          Book Appointment
-        </button>
-        <button onclick="closeModal()"
-          class="px-5 py-3 rounded-xl text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200">
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
 
   <script src="auth.js"></script>
   <script>
@@ -374,6 +266,19 @@
       return `<span class="status-badge ${cfg.cls}" title="${title}" onclick="${onclick}">${cfg.label}</span>`;
     }
 
+    function riskPillHTML(level, highCount) {
+      const cfg = {
+        HIGH:   { bg:'#fef2f2', color:'#dc2626', border:'#fecaca', icon:'⚠', label:'Critical' },
+        MEDIUM: { bg:'#fffbeb', color:'#d97706', border:'#fde68a', icon:'●', label:'Moderate' },
+        LOW:    { bg:'#f0fdf4', color:'#059669', border:'#bbf7d0', icon:'✓', label:'Routine'  },
+      };
+      const c = cfg[level] || cfg.LOW;
+      const count = (level === 'HIGH' && highCount > 0)
+        ? ` · ${highCount} flag${highCount > 1 ? 's' : ''}` : '';
+      return `<span style="font-size:10px;padding:2px 9px;border-radius:20px;font-weight:800;white-space:nowrap;
+        background:${c.bg};color:${c.color};border:1px solid ${c.border}">${c.icon} ${c.label}${count}</span>`;
+    }
+
     function apptRowHTML(a) {
       const [hhmm] = a.time.split(':');
       const hNum = parseInt(hhmm);
@@ -383,6 +288,11 @@
       const grad = AVATAR_GRADS[a.color] || AVATAR_GRADS.blue;
       const badgeHTML = a.badge
         ? `<span class="text-xs px-2 py-0.5 rounded-full font-semibold" style="background:rgba(0,0,0,.06);color:#475569">${a.badge}</span>`
+        : '';
+      const riskHTML    = a.risk_level ? riskPillHTML(a.risk_level, a.high_count || 0) : '';
+      const concernHTML = a.top_concern
+        ? `<div class="text-xs mt-0.5" style="color:#94a3b8;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+               title="${a.top_concern.replace(/"/g,'&quot;')}">${a.top_concern}</div>`
         : '';
       return `
         <div class="appt-row ${a.color}" id="appt-${a.id}" onclick="selectAppt(${a.id})">
@@ -395,8 +305,10 @@
             <div class="flex items-center gap-2 flex-wrap">
               <span class="font-bold text-slate-800">${a.patient_name}</span>
               ${badgeHTML}
+              ${riskHTML}
             </div>
             <div class="text-sm text-slate-500 mt-0.5">${a.type} · ${a.duration} min</div>
+            ${concernHTML}
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
             ${statusBadgeHTML(a.id, a.status)}
@@ -421,11 +333,12 @@
         <p class="text-sm font-medium">Loading…</p></div></div>`;
 
       try {
-        const r  = await fetch(`${API}/appointments?date=${dateStr}`);
+        const r  = await fetch(`${API}/appointments/risk-sorted?date=${dateStr}`);
         const { appointments } = await r.json();
         _appointments = appointments;
         renderAppointments(appointments);
         updateSummary(appointments);
+        updateSuggestions(appointments);
       } catch (e) {
         list.innerHTML = `<div class="bg-white rounded-2xl p-8 text-center text-slate-400">
           <p class="font-medium">Could not load appointments</p>
@@ -441,19 +354,26 @@
         return;
       }
 
-      // Group morning (before 12:00) and afternoon
-      const morning = appts.filter(a => a.time < '12:00');
-      const afternoon = appts.filter(a => a.time >= '12:00');
+      const high   = appts.filter(a => a.risk_level === 'HIGH');
+      const medium = appts.filter(a => a.risk_level === 'MEDIUM');
+      const low    = appts.filter(a => !a.risk_level || a.risk_level === 'LOW');
+
+      function sectionHeader(label, color, dotColor, borderColor, count, pulse) {
+        return `<div class="flex items-center gap-3 mb-3 mt-2">
+          <div class="flex items-center gap-1.5" style="font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:${color}">
+            <div class="w-2 h-2 rounded-full" style="background:${dotColor}${pulse?';animation:statusPulse 2s ease infinite':''}"></div>
+            ${label}
+          </div>
+          <div class="flex-1 h-px" style="background:${borderColor}"></div>
+          <span style="font-size:11px;font-weight:700;color:${dotColor}">${count} patient${count>1?'s':''}</span>
+        </div>`;
+      }
 
       let html = '';
-      if (morning.length) {
-        html += `<div class="flex items-center gap-3 mb-3"><div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Morning</div><div class="flex-1 h-px bg-slate-200"></div></div>`;
-        html += morning.map(apptRowHTML).join('') + '<div class="h-2"></div>';
-      }
-      if (afternoon.length) {
-        html += `<div class="flex items-center gap-3 mt-2 mb-3"><div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Afternoon</div><div class="flex-1 h-px bg-slate-200"></div></div>`;
-        html += afternoon.map(apptRowHTML).join('');
-      }
+      if (high.length)   html += sectionHeader('Critical Priority','#dc2626','#ef4444','#fee2e2',high.length,true)   + high.map(apptRowHTML).join('')   + '<div class="h-4"></div>';
+      if (medium.length) html += sectionHeader('Moderate Priority','#d97706','#f59e0b','#fde68a',medium.length,false) + medium.map(apptRowHTML).join('') + '<div class="h-4"></div>';
+      if (low.length)    html += sectionHeader('Routine',          '#059669','#10b981','#d1fae5',low.length,false)    + low.map(apptRowHTML).join('');
+
       list.innerHTML = `<div class="space-y-3">${html}</div>`;
     }
 
@@ -528,6 +448,31 @@
       }
     }
 
+    // ── AI Suggestions (from loaded appointments) ─────────────────────────
+    function updateSuggestions(appts) {
+      const el = document.getElementById('aiSuggestions');
+      const noteworthy = appts
+        .filter(a => a.risk_level === 'HIGH' || a.risk_level === 'MEDIUM')
+        .slice(0, 4);
+
+      if (!noteworthy.length) {
+        el.innerHTML = '<div class="px-5 py-6 text-center text-slate-400 text-xs font-medium">No clinical alerts for today</div>';
+        return;
+      }
+
+      el.innerHTML = noteworthy.map(a => {
+        const isHigh  = a.risk_level === 'HIGH';
+        const color   = isHigh ? '#dc2626' : '#d97706';
+        const icon    = isHigh ? '⚠' : '●';
+        const label   = isHigh ? 'Critical' : 'Moderate';
+        const concern = a.top_concern || a.type || 'Review needed';
+        return `<div class="px-5 py-3.5">
+          <p class="text-xs font-bold mb-0.5" style="color:${color}">${icon} ${label} — ${a.patient_name}</p>
+          <p class="text-xs text-slate-600">${concern}</p>
+        </div>`;
+      }).join('');
+    }
+
     // ── Open form filler for this patient ─────────────────────────────────
     function openFillForm(patientId, patientName, apptType, apptId) {
       sessionStorage.setItem('prefill_patient', patientId);
@@ -580,53 +525,6 @@
         el.classList.toggle('active', el.getAttribute('onclick') === `switchDate('${ds}')`);
       });
       loadAppointments(ds);
-    }
-
-    // ── New appointment modal ─────────────────────────────────────────────
-    function openNewAppt() {
-      document.getElementById('newDate').value = _currentDate;
-      document.getElementById('modalError').classList.add('hidden');
-      document.getElementById('apptModal').classList.add('open');
-    }
-    function closeModal() {
-      document.getElementById('apptModal').classList.remove('open');
-    }
-
-    async function submitNewAppt() {
-      const name  = document.getElementById('newName').value.trim();
-      const pid   = document.getElementById('newPid').value.trim();
-      const time  = document.getElementById('newTime').value;
-      const dur   = parseInt(document.getElementById('newDuration').value);
-      const type  = document.getElementById('newType').value.trim();
-      const date  = document.getElementById('newDate').value;
-      const color = document.getElementById('newColor').value;
-      const badge = document.getElementById('newBadge').value.trim();
-
-      const errEl = document.getElementById('modalError');
-      if (!name || !pid || !time || !type || !date) {
-        errEl.textContent = 'Please fill in all required fields.';
-        errEl.classList.remove('hidden');
-        return;
-      }
-      errEl.classList.add('hidden');
-
-      try {
-        const r = await fetch(`${API}/appointments`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            patient_id: pid, patient_name: name,
-            initials: name.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase(),
-            time, duration: dur, type, appointment_date: date, color, badge,
-          }),
-        });
-        if (!r.ok) throw new Error((await r.json()).detail || 'Failed');
-        closeModal();
-        loadAppointments(_currentDate);
-      } catch (e) {
-        errEl.textContent = e.message;
-        errEl.classList.remove('hidden');
-      }
     }
 
     // ── Boot ─────────────────────────────────────────────────────────────

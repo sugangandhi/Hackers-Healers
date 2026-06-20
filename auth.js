@@ -1,23 +1,37 @@
-// Simple demo auth — in production replace with real JWT/session
-const _DEMO = { username: 'dr.patel', password: 'medoffice2026' };
-const _DOCTOR = {
-  name: 'Dr. Anika Patel',
-  initials: 'AP',
-  role: 'Family Physician',
-  clinic: 'Ottawa Family Health Team',
-  cpso: '92841',
-};
+const _API = 'http://localhost:8000/api';
 
-function login(username, password) {
-  if (username === _DEMO.username && password === _DEMO.password) {
-    sessionStorage.setItem('moa_user', JSON.stringify(_DOCTOR));
-    return true;
+async function login(email, password) {
+  try {
+    const res = await fetch(`${_API}/auth/login`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email, password }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    localStorage.setItem('moa_token', data.token);
+    localStorage.setItem('moa_user',  JSON.stringify(data.user));
+    return data.user;
+  } catch {
+    return null;
   }
-  return false;
+}
+
+async function register(email, password, name, role, clinic) {
+  const res = await fetch(`${_API}/auth/register`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ email, password, name, role, clinic }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || 'Registration failed');
+  localStorage.setItem('moa_token', data.token);
+  localStorage.setItem('moa_user',  JSON.stringify(data.user));
+  return data.user;
 }
 
 function getUser() {
-  try { return JSON.parse(sessionStorage.getItem('moa_user')); }
+  try { return JSON.parse(localStorage.getItem('moa_user')); }
   catch { return null; }
 }
 
@@ -28,6 +42,7 @@ function requireAuth() {
 }
 
 function logout() {
-  sessionStorage.removeItem('moa_user');
+  localStorage.removeItem('moa_user');
+  localStorage.removeItem('moa_token');
   window.location.replace('login.html');
 }
