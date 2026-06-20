@@ -1,5 +1,5 @@
 const SAMPLE_DATA = {
-  referral: `Patient: Sarah Khan | DOB: 1981-04-14 | OHIP: synthetic
+  referral: `Patient: Sarah Khan | DOB: 1981-04-14 | OHIP: 3456-789-012-AB
 Reason for referral: Persistent chest discomfort and exertional dyspnea for 3 months.
 Relevant history: Hypertension, family history of CAD, former smoker.
 Medications: Ramipril 10 mg daily, atorvastatin 20 mg nightly.

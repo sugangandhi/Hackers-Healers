@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8000/api';
+// API_BASE is defined in index.html before this script loads
 
 // ── State ────────────────────────────────────────────────────────────────────
 let selectedFile  = null;
@@ -15,7 +15,7 @@ document.querySelectorAll('[data-main-tab]').forEach(btn => {
     document.getElementById('formFillerSection').classList.toggle('hidden', tab !== 'formfiller');
     document.getElementById('referralSection').classList.toggle('hidden', tab === 'formfiller');
     if (tab === 'inbound'  && typeof setActiveTab === 'function') setActiveTab('inbound');
-    if (tab === 'referral' && typeof setActiveTab === 'function') setActiveTab('referral');
+    if (tab === 'referral' && typeof setActiveTab === 'function') setActiveTab('outbound');
   });
 });
 
@@ -31,6 +31,14 @@ async function loadPatients() {
       opt.textContent = `${p.name}  (DOB: ${p.birthDate})`;
       sel.appendChild(opt);
     });
+    // Pre-select patient if coming from scheduler
+    const prefill = sessionStorage.getItem('prefill_patient');
+    if (prefill) {
+      sel.value = prefill;
+      sessionStorage.removeItem('prefill_patient');
+      sessionStorage.removeItem('prefill_label');
+      updateButtons();
+    }
   } catch { /* backend may not be running yet */ }
 }
 loadPatients();
@@ -335,12 +343,6 @@ function showSection(name) {
 
 function setStatus(text) {
   document.getElementById('ffStatus').textContent = text;
-}
-
-function esc(str) {
-  return String(str || '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
